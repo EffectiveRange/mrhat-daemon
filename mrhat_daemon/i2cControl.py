@@ -32,6 +32,7 @@ class I2CError(Exception):
         self, message: str, operation: str, register: int, data: Optional[int] = None, error: Optional[Any] = None
     ) -> None:
         super().__init__(message)
+        self.message = message
         self.operation = operation
         self.register = register
         self.data = data
@@ -108,10 +109,11 @@ class I2CControl(II2CControl):
                     if retry == self._retry_limit:
                         raise error
                     log.warn(
-                        'I2C transaction failed, retrying',
+                        f'{error.message} -> retrying',
                         operation=error.operation,
                         register=error.register,
                         data=error.data,
+                        error=error.error,
                         retry=retry,
                     )
                     time.sleep(self._retry_delay)
@@ -122,13 +124,15 @@ class I2CControl(II2CControl):
         data = self._direct_read_register(register)
         status = self._direct_read_register(REG_STAT_I2C_ERR_AND_STICKY_ADDR)
 
-        if status not in [I2C_ERR_CLEAN, I2C_ERR_CLEAN + REG_VAL_I2C_CLIENT_ERROR_READ_UNDERFLOW]:
-            self._direct_write_register(REG_STAT_I2C_ERR_AND_STICKY_ADDR, I2C_ERR_CLEAN)
-
-            if status == 0x00:
-                raise I2CError('Failed to read I2C status register', 'read', REG_STAT_I2C_ERR_AND_STICKY_ADDR, status)
-            else:
-                raise I2CError('Failed to read I2C data register', 'read', register, data)
+        if status != I2C_ERR_CLEAN:
+            if status != I2C_ERR_CLEAN + REG_VAL_I2C_CLIENT_ERROR_READ_UNDERFLOW:
+                if status == 0x00:
+                    raise I2CError(
+                        'Failed to read I2C status register', 'read', REG_STAT_I2C_ERR_AND_STICKY_ADDR, status
+                    )
+                else:
+                    self._direct_write_register(REG_STAT_I2C_ERR_AND_STICKY_ADDR, I2C_ERR_CLEAN)
+                    raise I2CError('Failed to read I2C data register', 'read', register, data, status)
         else:
             log.info('I2C register read completed', register=register, data=data)
 
@@ -152,6 +156,7 @@ class I2CControl(II2CControl):
 
         try:
             data: int = control.i2c_read_byte_data(self._device, register)
+            # time.sleep(0.2)
         except pigpio.error as error:
             raise I2CError('Failed to read I2C register', 'read', register, error=error)
 
@@ -164,6 +169,7 @@ class I2CControl(II2CControl):
 
         try:
             result: int = control.i2c_write_byte_data(self._device, register, data)
+            # time.sleep(0.2)
         except pigpio.error as error:
             raise I2CError('Failed to write I2C register', 'write', register, data, error)
 

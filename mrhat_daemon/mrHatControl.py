@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: 2024 Ferenc Nandor Janky <ferenj@effective-range.com>
 # SPDX-FileCopyrightText: 2024 Attila Gombos <attila.gombos@effective-range.com>
 # SPDX-License-Identifier: MIT
-
 from enum import Enum
 from typing import Any
 
@@ -45,9 +44,6 @@ class I2CStatus(Enum):
 class IMrHatControl(object):
 
     def initialize(self) -> None:
-        raise NotImplementedError()
-
-    def check_firmware(self) -> None:
         raise NotImplementedError()
 
 
@@ -137,7 +133,7 @@ class MrHatControl(IMrHatControl):
 
         status = self._get_status_flags()
 
-        log.info('Read status', status=status)
+        log.info('Read device status', status=status)
 
         if DeviceStatus.SHUTDOWN_REQUESTED in status:
             log.info('Shutdown request received, shutting down')

@@ -33,6 +33,6 @@ class PlatformAccess(IPlatformAccess):
         return result
 
     def execute_command_async(self, command: list[str]) -> None:
-        log.info('Executing command', command=command)
+        log.info('Executing command asynchronously', command=command)
 
         Popen(command, stdout=PIPE, stderr=PIPE, text=True)
