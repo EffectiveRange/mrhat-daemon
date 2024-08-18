@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2024 Ferenc Nandor Janky <ferenj@effective-range.com>
 # SPDX-FileCopyrightText: 2024 Attila Gombos <attila.gombos@effective-range.com>
 # SPDX-License-Identifier: MIT
+
 from enum import Enum
 from typing import Any
 
@@ -13,7 +14,6 @@ from generated import (
     REG_SW_VER_MINOR_ADDR,
     REG_SW_VER_PATCH_ADDR,
     SHUT_REQ,
-    REG_STAT_I2C_ERR_AND_STICKY_ADDR,
     PI_HB,
     REG_VAL_I2C_CLIENT_ERROR_NONE,
     REG_VAL_I2C_CLIENT_ERROR_BUS_COLLISION,
@@ -21,10 +21,13 @@ from generated import (
     REG_VAL_I2C_CLIENT_ERROR_RECEIVE_OVERFLOW,
     REG_VAL_I2C_CLIENT_ERROR_TRANSMIT_UNDERFLOW,
     REG_VAL_I2C_CLIENT_ERROR_READ_UNDERFLOW,
+    REG_ADDR_RD_END,
 )
 from mrhat_daemon import II2CControl, IPicProgrammer, IPlatformAccess, IPiGpio
 
 log = get_logger('MrHatControl')
+
+REGISTER_SPACE_LENGTH = REG_ADDR_RD_END + 1
 
 
 class DeviceStatus(Enum):
@@ -72,9 +75,11 @@ class MrHatControl(IMrHatControl):
 
         self._open_connection()
 
-        self._get_initial_status()
+        registers = self._get_device_registers()
 
-        if self._check_firmware():
+        self._get_device_status(registers)
+
+        if self._check_firmware(registers):
             self._upgrade_firmware()
 
     def _open_connection(self) -> None:
@@ -85,13 +90,13 @@ class MrHatControl(IMrHatControl):
         self._i2c_control.close_device()
         self._pi_gpio.stop()
 
-    def _get_initial_status(self) -> None:
-        status = self._get_status_flags()
-        i2c_status = I2CStatus(self._get_i2c_status() & 0x0F)
-        log.info('Initial status', status=status, i2c_status=i2c_status)
+    def _get_device_status(self, registers: list[int]) -> list[DeviceStatus]:
+        status = self._get_status_flags(registers)
+        log.info('Retrieved device status', status=status)
+        return status
 
-    def _check_firmware(self) -> bool:
-        current = self._get_current_firmware_version()
+    def _check_firmware(self, registers: list[int]) -> bool:
+        current = self._get_current_firmware_version(registers)
         target = self._get_target_firmware_version()
 
         if current < target:
@@ -111,17 +116,16 @@ class MrHatControl(IMrHatControl):
 
         self._open_connection()
 
-    def _get_status_flags(self) -> list[DeviceStatus]:
-        status = self._i2c_control.read_register(REG_STAT_0_ADDR)
-        return [flag for flag in DeviceStatus if status & flag.value]
+    def _get_device_registers(self) -> list[int]:
+        return self._i2c_control.read_block_data(REGISTER_SPACE_LENGTH)
 
-    def _get_i2c_status(self) -> int:
-        return self._i2c_control.read_register(REG_STAT_I2C_ERR_AND_STICKY_ADDR)
+    def _get_status_flags(self, registers: list[int]) -> list[DeviceStatus]:
+        return [flag for flag in DeviceStatus if registers[REG_STAT_0_ADDR] & flag.value]
 
-    def _get_current_firmware_version(self) -> Version:
-        major = self._i2c_control.read_register(REG_SW_VER_MAJOR_ADDR)
-        minor = self._i2c_control.read_register(REG_SW_VER_MINOR_ADDR)
-        patch = self._i2c_control.read_register(REG_SW_VER_PATCH_ADDR)
+    def _get_current_firmware_version(self, registers: list[int]) -> Version:
+        major = registers[REG_SW_VER_MAJOR_ADDR]
+        minor = registers[REG_SW_VER_MINOR_ADDR]
+        patch = registers[REG_SW_VER_PATCH_ADDR]
 
         return Version(f'{major}.{minor}.{patch}')
 
@@ -129,11 +133,10 @@ class MrHatControl(IMrHatControl):
         return self._pic_programmer.load_firmware().version
 
     def _handle_interrupt(self, gpio: int, level: int, tick: int) -> None:
-        log.info('Received interrupt from the device, reading status', gpio=gpio, pin_level=level, tick=tick)
+        log.info('Received interrupt from the device', gpio=gpio, pin_level=level, tick=tick)
 
-        status = self._get_status_flags()
-
-        log.info('Read device status', status=status)
+        registers = self._get_device_registers()
+        status = self._get_device_status(registers)
 
         if DeviceStatus.SHUTDOWN_REQUESTED in status:
             log.info('Shutdown request received, shutting down')
