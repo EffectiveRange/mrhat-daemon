@@ -40,12 +40,12 @@ class PicProgrammerTest(TestCase):
         config, platform_access, file_downloader = create_components()
         platform_access.get_executable_path.return_value = None
 
-        def create_programmer():
+        def create_pic_programmer():
             with PicProgrammer(config, platform_access, file_downloader):
                 pass
 
         # When
-        self.assertRaises(ProgrammerError, create_programmer)
+        self.assertRaises(ProgrammerError, create_pic_programmer)
 
         # Then
         platform_access.get_executable_path.assert_called_once_with('picprogrammer')

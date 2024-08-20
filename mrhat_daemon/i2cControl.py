@@ -67,7 +67,7 @@ class I2CControl(II2CControl):
         if not self._device:
             self._lock.acquire()
 
-            control = self._pi_gpio.control()
+            control = self._pi_gpio.get_control()
             self._device = control.i2c_open(self._i2c_bus_id, self._i2c_address)
             log.info('Opened I2C device', bus=self._i2c_bus_id, address=self._i2c_address, device=self._device)
 
@@ -77,7 +77,7 @@ class I2CControl(II2CControl):
         if self._device is not None:
             self._lock.acquire()
 
-            control = self._pi_gpio.control()
+            control = self._pi_gpio.get_control()
             control.i2c_close(self._device)
             log.info('Closed I2C device', bus=self._i2c_bus_id, address=self._i2c_address, device=self._device)
             self._device = None
@@ -103,7 +103,7 @@ class I2CControl(II2CControl):
             self._lock.release()
 
     def _read_block_data(self, length: int) -> list[int]:
-        control = self._pi_gpio.control()
+        control = self._pi_gpio.get_control()
 
         try:
             count, byte_data = control.i2c_read_device(self._device, length)

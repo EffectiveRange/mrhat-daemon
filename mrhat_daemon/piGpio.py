@@ -62,7 +62,7 @@ class IPiGpio(object):
     def stop(self) -> None:
         raise NotImplementedError()
 
-    def control(self) -> pi:
+    def get_control(self) -> pi:
         raise NotImplementedError()
 
 
@@ -81,10 +81,9 @@ class PiGpio(IPiGpio):
         self._platform_access = platform_access
         self._service_config = service_config
         self._interrupt_config = interrupt_config
-        self._interrupt_handler = None
+        self._pi_provider = pi_provider
         self._pi = None
         self._callback = None
-        self._pi_provider = pi_provider
 
     def __enter__(self) -> 'PiGpio':
         self._check_service()
@@ -112,7 +111,7 @@ class PiGpio(IPiGpio):
 
         self._wait_for_service_state(False)
 
-    def control(self) -> pi:
+    def get_control(self) -> pi:
         if not self._pi or not self._pi.connected:
             self.start()
 
