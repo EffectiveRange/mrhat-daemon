@@ -1,0 +1,5 @@
+
+#define REG_STAT_0_ADDR 0xA
+#define SHUT_REQ_POS 0
+#define SHUT_REQ (1<<SHUT_REQ_POS)
+#define SHUT_REQ_MASK (1<<SHUT_REQ_POS) & 0xFF
