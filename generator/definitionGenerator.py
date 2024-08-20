@@ -4,7 +4,6 @@
 
 from os.path import abspath
 from pathlib import Path
-from urllib.parse import urlparse
 
 from common_utility import create_file, IFileDownloader
 from context_logger import get_logger
@@ -47,8 +46,7 @@ class DefinitionGenerator(IDefinitionGenerator):
     def _get_source_file_path(self) -> str:
         source_file = self._configuration['source-file']
 
-        if urlparse(source_file).scheme:
-            source_file = self._file_downloader.download(source_file, skip_if_exists=False)
+        source_file = self._file_downloader.download(source_file, skip_if_exists=False)
 
         return abspath(source_file)
 
