@@ -10,16 +10,16 @@ from typing import Any
 
 from context_logger import get_logger
 
-log = get_logger('ConfigLoader')
+log = get_logger('AppConfigLoader')
 
 
-class IConfigLoader(object):
+class IAppConfigLoader(object):
 
     def load(self, arguments: dict[str, Any]) -> dict[str, Any]:
         raise NotImplementedError()
 
 
-class ConfigLoader(IConfigLoader):
+class AppConfigLoader(IAppConfigLoader):
 
     def __init__(self, resource_root: str):
         self._resource_root = resource_root

@@ -7,16 +7,16 @@ from os.path import exists
 
 from context_logger import get_logger
 
-log = get_logger('ConfigLoader')
+log = get_logger('BuildConfigLoader')
 
 
-class IConfigLoader(object):
+class IBuildConfigLoader(object):
 
     def load(self) -> dict[str, str]:
         raise NotImplementedError()
 
 
-class ConfigLoader(IConfigLoader):
+class BuildConfigLoader(IBuildConfigLoader):
 
     def __init__(self, config_file: str):
         self._config_file = config_file
@@ -31,6 +31,6 @@ class ConfigLoader(IConfigLoader):
 
         if not parser.has_section('generate-definitions'):
             log.error('Configuration file is missing [generate-definitions] section', file=self._config_file)
-            raise Exception('Configuration file is missing [generate-definitions] section')
+            raise AttributeError('Configuration file is missing [generate-definitions] section')
 
         return dict(parser['generate-definitions'])

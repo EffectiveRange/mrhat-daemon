@@ -1,4 +1,4 @@
-from .configLoader import *
+from .buildConfigLoader import *
 from .codeFormatter import *
 from .definitionConverter import *
 from .definitionGenerator import *

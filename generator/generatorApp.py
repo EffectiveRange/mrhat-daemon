@@ -11,7 +11,7 @@ from pathlib import Path
 from common_utility import SessionProvider, FileDownloader
 from context_logger import setup_logging
 
-from generator import ConfigLoader, DefinitionGenerator, DefinitionConverter, CodeFormatter
+from generator import BuildConfigLoader, DefinitionGenerator, DefinitionConverter, CodeFormatter
 
 sys.path.insert(0, dirname(abspath(__file__)))
 
@@ -23,7 +23,7 @@ class GeneratorApp(object):
 
     def run(self) -> None:
         config_file = f'{self._project_root}/setup.cfg'
-        configuration = ConfigLoader(config_file).load()
+        configuration = BuildConfigLoader(config_file).load()
 
         session_provider = SessionProvider()
         download_dir = abspath(f'{self._project_root}/{configuration["download-dir"]}')

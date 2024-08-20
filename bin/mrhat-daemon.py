@@ -18,7 +18,7 @@ from mrhat_daemon import (
     MrHatDaemon,
     ApiServer,
     I2CControl,
-    ConfigLoader,
+    AppConfigLoader,
     MrHatControl,
     PicProgrammer,
     PlatformAccess,
@@ -43,7 +43,7 @@ def main() -> None:
 
     setup_logging(APPLICATION_NAME)
 
-    config = ConfigLoader(resource_root).load(arguments)
+    config = AppConfigLoader(resource_root).load(arguments)
 
     _update_logging(config)
 
