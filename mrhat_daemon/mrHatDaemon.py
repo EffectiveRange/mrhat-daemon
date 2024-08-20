@@ -6,7 +6,7 @@ from context_logger import get_logger
 
 from mrhat_daemon import IApiServer, IMrHatControl
 
-log = get_logger('MrhatDaemon')
+log = get_logger('MrHatDaemon')
 
 
 class MrHatDaemon(object):

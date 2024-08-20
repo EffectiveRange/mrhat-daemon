@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 Restart=always
 RestartSec=30
-ExecStart=/usr/local/bin/python3 /usr/local/bin/mrhat-daemon.py
+ExecStart=/usr/bin/python3 /usr/local/bin/mrhat-daemon.py
 
 [Install]
 WantedBy=multi-user.target
