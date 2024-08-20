@@ -91,11 +91,12 @@ class I2CControl(II2CControl):
         try:
             self._lock.acquire()
 
-            for retry in range(1, self._retry_limit + 1):
+            for retry in range(0, self._retry_limit + 1):
                 try:
                     return operation(*args)
                 except I2CError as error:
-                    if retry > self._retry_limit:
+                    if retry == self._retry_limit:
+                        log.error(f'{error.message} -> giving up', error=error.error, data=error.data, retry=retry)
                         raise error
                     log.warn(f'{error.message} -> retrying', error=error.error, data=error.data, retry=retry)
                     time.sleep(self._retry_delay)

@@ -117,9 +117,6 @@ class PicProgrammer(IPicProgrammer):
         if not firmware_file and self._firmware_dir:
             firmware_file = self._find_latest_firmware_file(self._firmware_dir)
 
-        if not firmware_file:
-            log.error('Firmware file not found', dir=self._firmware_dir, file=self._firmware_file)
-
         return firmware_file
 
     def _get_firmware_file(self, firmware_file: str) -> Optional[FirmwareFile]:

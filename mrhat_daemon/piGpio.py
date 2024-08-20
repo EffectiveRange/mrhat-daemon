@@ -133,12 +133,12 @@ class PiGpio(IPiGpio):
             state = 'inactive'
 
         config = self._service_config
-        for retry in range(1, config.retry_limit + 1):
+        for retry in range(0, config.retry_limit + 1):
             if self._systemd.is_active(self.SERVICE_NAME) == active:
                 return
             else:
                 if retry == config.retry_limit:
-                    log.error(f'Service failed to enter {state} state', service=self.SERVICE_NAME)
+                    log.error(f'Service failed to enter {state} state', service=self.SERVICE_NAME, retry=retry)
                     raise PiGpioError(f'Service failed to enter {state} state')
 
                 log.info(f'Waiting for service to enter {state} state', service=self.SERVICE_NAME, retry=retry)

@@ -190,6 +190,46 @@ class PicProgrammerTest(TestCase):
         self.assertEquals('hex', result.format)
         self.assertEquals(Version('1.1.1'), result.version)
 
+    def test_upgrade_firmware_when_device_is_available(self):
+        # Given
+        firmware_dir = f'{TEST_RESOURCE_ROOT}/firmware'
+        config, platform_access, file_downloader = create_components()
+        config = ProgrammerConfig(firmware_dir=firmware_dir)
+        pic_programmer = PicProgrammer(config, platform_access, file_downloader)
+
+        # When
+        pic_programmer.upgrade_firmware()
+
+        # Then
+        platform_access.execute_command.assert_called_once_with(
+            ['picprogrammer', '-f', f'{TEST_RESOURCE_ROOT}/firmware/fw-mrhat-1.1.1-production.hex', '--hex', '--write']
+        )
+
+    def test_upgrade_firmware_raises_error_when_no_firmware_file(self):
+        # Given
+        firmware_dir = f'{TEST_RESOURCE_ROOT}/invalid'
+        config, platform_access, file_downloader = create_components()
+        config = ProgrammerConfig(firmware_dir=firmware_dir)
+        pic_programmer = PicProgrammer(config, platform_access, file_downloader)
+
+        # When, Then
+        self.assertRaises(ProgrammerError, pic_programmer.upgrade_firmware)
+
+    def test_upgrade_firmware_raises_error_when_upgrade_fails(self):
+        # Given
+        firmware_dir = f'{TEST_RESOURCE_ROOT}/firmware'
+        config, platform_access, file_downloader = create_components(1)
+        config = ProgrammerConfig(firmware_dir=firmware_dir)
+        pic_programmer = PicProgrammer(config, platform_access, file_downloader)
+
+        # When
+        self.assertRaises(ProgrammerError, pic_programmer.upgrade_firmware)
+
+        # Then
+        platform_access.execute_command.assert_called_once_with(
+            ['picprogrammer', '-f', f'{TEST_RESOURCE_ROOT}/firmware/fw-mrhat-1.1.1-production.hex', '--hex', '--write']
+        )
+
 
 def get_device_info(device_id: str):
     return f'''Device Id: 0x7a40 ({device_id})
