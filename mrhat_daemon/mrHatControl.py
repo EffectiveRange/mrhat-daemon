@@ -79,8 +79,7 @@ class MrHatControl(IMrHatControl):
 
         self._get_device_status(registers)
 
-        if self._check_firmware(registers):
-            self._upgrade_firmware()
+        self._check_firmware(registers)
 
     def _open_connection(self) -> None:
         self._pi_gpio.start(self._handle_interrupt)
@@ -130,7 +129,8 @@ class MrHatControl(IMrHatControl):
         return Version(f'{major}.{minor}.{patch}')
 
     def _get_target_firmware_version(self) -> Version:
-        return self._pic_programmer.load_firmware().version
+        target_firmware = self._pic_programmer.load_firmware()
+        return target_firmware.version if target_firmware else Version('0.0.0')
 
     def _handle_interrupt(self, gpio: int, level: int, tick: int) -> None:
         log.info('Received interrupt from the device', gpio=gpio, pin_level=level, tick=tick)

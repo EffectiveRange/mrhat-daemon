@@ -29,6 +29,7 @@ from mrhat_daemon import (
     InterruptConfig,
     GpioPullType,
     GpioEdgeType,
+    ApiServerConfiguration,
 )
 
 APPLICATION_NAME = 'mrhat-daemon'
@@ -50,7 +51,7 @@ def main() -> None:
 
     platform_access = PlatformAccess()
     session_provider = SessionProvider()
-    file_downloader = FileDownloader(session_provider, config.get('firmware_dir', '/tmp'))
+    file_downloader = FileDownloader(session_provider, config.get('firmware_dir', '/opt/effective-range/fw/'))
 
     systemd = SystemdDbus()
 
@@ -63,11 +64,11 @@ def main() -> None:
     edge_type = GpioEdgeType[config.get('interrupt_edge', 'FALLING_EDGE')]
     interrupt_config = InterruptConfig(gpio_pin, pull_type, edge_type)
 
-    with PiGpio(systemd, service_config, interrupt_config) as pi_gpio:
+    with PiGpio(systemd, platform_access, service_config, interrupt_config) as pi_gpio:
         firmware_dir = config.get('firmware_dir')
         firmware_file = config.get('firmware_file')
         gpio_options = {gpio: int(pin) for gpio, pin in config.items() if gpio.startswith('gpio')}
-        programmer_config = ProgrammerConfig(firmware_dir, firmware_file, gpio_options)
+        programmer_config = ProgrammerConfig(gpio_options, firmware_dir, firmware_file)
 
         i2c_bus_id = int(config.get('i2c_bus_id', 1))
         i2c_address = int(config.get('i2c_address', '0x33'), 16)
@@ -75,11 +76,14 @@ def main() -> None:
         i2c_retry_delay = float(config.get('i2c_retry_delay', 0.1))
         i2c_config = I2CConfig(i2c_bus_id, i2c_address, i2c_retry_limit, i2c_retry_delay)
 
+        server_port = int(config.get('server_port', 9000))
+        api_server_config = ApiServerConfiguration(server_port, resource_root)
+
         with (
             PicProgrammer(programmer_config, platform_access, file_downloader) as pic_programmer,
             I2CControl(pi_gpio, i2c_config) as i2c_control,
             MrHatControl(pi_gpio, pic_programmer, i2c_control, platform_access) as mr_hat_control,
-            ApiServer(config.get('server_port', 9000)) as api_server,
+            ApiServer(api_server_config) as api_server,
         ):
             mr_hat_daemon = MrHatDaemon(mr_hat_control, api_server)
 
@@ -96,9 +100,7 @@ def main() -> None:
 
 def _get_arguments() -> dict[str, Any]:
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
-    parser.add_argument(
-        '-c', '--config-file', help='configuration file', default=f'/etc/{APPLICATION_NAME}/{APPLICATION_NAME}.conf'
-    )
+    parser.add_argument('-c', '--config-file', help='configuration file', default=f'/etc/{APPLICATION_NAME}.conf')
     parser.add_argument('--log-file', help='log file path')
     parser.add_argument('--log-level', help='logging level')
     parser.add_argument('-p', '--server-port', help='web server port to listen on', type=int)

@@ -66,7 +66,7 @@ class MrHatControlTest(TestCase):
         i2c_control.open_device.assert_called_once()
         i2c_control.read_block_data.assert_called_once_with(REGISTER_SPACE_LENGTH)
 
-    def test_initialize_when_running_firmware_needs_update(self):
+    def test_initialize_when_running_firmware_is_older(self):
         # Given
         i2c_data = [0, 128, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 1, 0, 0]
         pi_gpio, pic_programmer, i2c_control, platform_access = create_components(i2c_data)
@@ -80,8 +80,6 @@ class MrHatControlTest(TestCase):
         pi_gpio.start.assert_called_with(mr_hat_control._handle_interrupt)
         i2c_control.open_device.assert_called()
         i2c_control.read_block_data.assert_called_once_with(REGISTER_SPACE_LENGTH)
-        i2c_control.close_device.assert_called()
-        pic_programmer.upgrade_firmware.assert_called_once()
 
     def test_handling_interrupt_when_shutdown_not_requested(self):
         # Given

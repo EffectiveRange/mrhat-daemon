@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: 2024 Attila Gombos <attila.gombos@effective-range.com>
 # SPDX-License-Identifier: MIT
 
+from dataclasses import dataclass
 from threading import Thread
 from typing import Any
 
@@ -10,6 +11,12 @@ from flask import Flask
 from waitress.server import create_server
 
 log = get_logger('ApiServer')
+
+
+@dataclass
+class ApiServerConfiguration:
+    server_port: int
+    resource_root: str
 
 
 class IApiServer(object):
@@ -26,8 +33,9 @@ class IApiServer(object):
 
 class ApiServer(IApiServer):
 
-    def __init__(self, port: int) -> None:
-        self._port = port
+    def __init__(self, configuration: ApiServerConfiguration) -> None:
+        self._configuration = configuration
+        self._port = self._configuration.server_port
         self._app = Flask(__name__)
         self._server = create_server(self._app, listen=f'*:{self._port}')
         self._thread = Thread(target=self._start_server)

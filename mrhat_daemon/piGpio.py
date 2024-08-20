@@ -5,13 +5,14 @@
 import time
 from dataclasses import dataclass
 from enum import Enum
-from shutil import which
 from typing import Any, Callable, Optional
 
 import pigpio
 from context_logger import get_logger
 from pigpio import pi
 from systemd_dbus import Systemd
+
+from mrhat_daemon import IPlatformAccess
 
 log = get_logger('PiGpio')
 
@@ -68,13 +69,22 @@ class IPiGpio(object):
 class PiGpio(IPiGpio):
     SERVICE_NAME = 'pigpiod'
 
-    def __init__(self, systemd: Systemd, service_config: ServiceConfig, interrupt_config: InterruptConfig) -> None:
+    def __init__(
+        self,
+        systemd: Systemd,
+        platform_access: IPlatformAccess,
+        service_config: ServiceConfig,
+        interrupt_config: InterruptConfig,
+        pi_provider: Any = lambda: pi(),
+    ) -> None:
         self._systemd = systemd
+        self._platform_access = platform_access
         self._service_config = service_config
         self._interrupt_config = interrupt_config
         self._interrupt_handler = None
         self._pi = None
         self._callback = None
+        self._pi_provider = pi_provider
 
     def __enter__(self) -> 'PiGpio':
         self._check_service()
@@ -88,7 +98,7 @@ class PiGpio(IPiGpio):
         self._wait_for_service_state(True)
 
         if not self._pi:
-            self._pi = pi()
+            self._pi = self._pi_provider()
 
         if self._pi and self._pi.connected:
             self._set_up_interrupt(handler)
@@ -109,7 +119,7 @@ class PiGpio(IPiGpio):
         return self._pi
 
     def _check_service(self) -> None:
-        if not (service := which(self.SERVICE_NAME)):
+        if not (service := self._platform_access.get_executable_path(self.SERVICE_NAME)):
             log.error('Service is not available', service=self.SERVICE_NAME)
             raise PiGpioError('Service is not available')
 

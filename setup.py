@@ -40,6 +40,7 @@ setup(
     maintainer_email='info@effective-range.com',
     packages=find_packages(exclude=['tests']),
     scripts=['bin/mrhat-daemon.py'],
+    data_files=[('config', ['config/mrhat-daemon.conf'])],
     setup_requires=[
         'black',
         'python-context-logger@git+https://github.com/EffectiveRange/python-context-logger.git@latest',
