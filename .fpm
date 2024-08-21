@@ -9,3 +9,6 @@
 --depends python3-dbus
 --python-disable-dependency black
 --depends black
+--deb-systemd service/mrhat-daemon.service
+--deb-systemd-enable
+--deb-systemd-auto-start
