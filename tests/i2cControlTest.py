@@ -62,7 +62,7 @@ class I2cControlTest(TestCase):
 
         # Then
         pi_gpio.get_control().i2c_read_device.assert_called_once_with(1, 10)
-        self.assertEquals([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], result)
+        self.assertEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], result)
 
     def test_read_block_data_when_read_raises_error(self):
         # Given
@@ -120,7 +120,7 @@ class I2cControlTest(TestCase):
 
         # Then
         pi_gpio.get_control().i2c_read_device.assert_has_calls([mock.call(1, 10), mock.call(1, 10)])
-        self.assertEquals([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], result)
+        self.assertEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], result)
 
 
 def create_components(device: int = 0, length: int = 10):

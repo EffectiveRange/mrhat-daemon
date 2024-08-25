@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: 2024 Attila Gombos <attila.gombos@effective-range.com>
 # SPDX-License-Identifier: MIT
 
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
@@ -44,6 +45,12 @@ class I2CStatus(Enum):
     READ_UNDERFLOW = REG_VAL_I2C_CLIENT_ERROR_READ_UNDERFLOW
 
 
+@dataclass
+class MrHatControlConfig:
+    upgrade_firmware: bool = False
+    force_power_off: bool = False
+
+
 class IMrHatControl(object):
 
     def initialize(self) -> None:
@@ -58,11 +65,13 @@ class MrHatControl(IMrHatControl):
         pic_programmer: IPicProgrammer,
         i2c_control: II2CControl,
         platform_access: IPlatformAccess,
+        config: MrHatControlConfig,
     ) -> None:
         self._pi_gpio = pi_gpio
         self._pic_programmer = pic_programmer
         self._i2c_control = i2c_control
         self._platform_access = platform_access
+        self._config = config
 
     def __enter__(self) -> 'MrHatControl':
         return self
@@ -79,7 +88,8 @@ class MrHatControl(IMrHatControl):
 
         self._get_device_status(registers)
 
-        self._check_firmware(registers)
+        if self._check_firmware(registers) and self._config.upgrade_firmware:
+            self._upgrade_firmware()
 
     def _open_connection(self) -> None:
         self._pi_gpio.start(self._handle_interrupt)
@@ -139,5 +149,13 @@ class MrHatControl(IMrHatControl):
         status = self._get_device_status(registers)
 
         if DeviceStatus.SHUTDOWN_REQUESTED in status:
-            log.info('Shutdown request received, shutting down')
-            self._platform_access.execute_command_async(['shutdown'])
+            force_power_off = self._config.force_power_off
+
+            log.info("Shutdown request received, issuing 'poweroff' command", force=force_power_off)
+
+            shutdown_command = ['poweroff']
+
+            if force_power_off:
+                shutdown_command.append('--force')
+
+            self._platform_access.execute_command_async(shutdown_command)

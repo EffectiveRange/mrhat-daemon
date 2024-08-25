@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: MIT
 
 import os
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, BooleanOptionalAction
 from pathlib import Path
 from signal import signal, SIGINT, SIGTERM
 from typing import Any
@@ -30,6 +30,7 @@ from mrhat_daemon import (
     GpioPullType,
     GpioEdgeType,
     ApiServerConfiguration,
+    MrHatControlConfig,
 )
 
 APPLICATION_NAME = 'mrhat-daemon'
@@ -76,13 +77,17 @@ def main() -> None:
         i2c_retry_delay = float(config.get('i2c_retry_delay', 0.1))
         i2c_config = I2CConfig(i2c_bus_id, i2c_address, i2c_retry_limit, i2c_retry_delay)
 
+        control_config = MrHatControlConfig(
+            bool(config.get('upgrade_firmware', False)), bool(config.get('force_power_off', False))
+        )
+
         server_port = int(config.get('server_port', 9000))
         api_server_config = ApiServerConfiguration(server_port, resource_root)
 
         with (
             PicProgrammer(programmer_config, platform_access, file_downloader) as pic_programmer,
             I2CControl(pi_gpio, i2c_config) as i2c_control,
-            MrHatControl(pi_gpio, pic_programmer, i2c_control, platform_access) as mr_hat_control,
+            MrHatControl(pi_gpio, pic_programmer, i2c_control, platform_access, control_config) as mr_hat_control,
             ApiServer(api_server_config) as api_server,
         ):
             mr_hat_daemon = MrHatDaemon(mr_hat_control, api_server)
@@ -108,7 +113,9 @@ def _get_arguments() -> dict[str, Any]:
     parser.add_argument('-a', '--i2c-address', help='I2C address of the device', type=int)
     parser.add_argument('-i', '--interrupt-pin', help='interrupt GPIO pin number of the device', type=int)
     parser.add_argument('-d', '--firmware-dir', help='MrHat firmware directory path')
-    parser.add_argument('-f', '--firmware-file', help='MrHat firmware file path or URL')
+    parser.add_argument('-F', '--firmware-file', help='MrHat firmware file path or URL')
+    parser.add_argument('-u', '--upgrade-firmware', help='automatically upgrade firmware', action=BooleanOptionalAction)
+    parser.add_argument('-f', '--force-power-off', help='force power off the system', action=BooleanOptionalAction)
 
     return {k: v for k, v in vars(parser.parse_args()).items() if v is not None}
 

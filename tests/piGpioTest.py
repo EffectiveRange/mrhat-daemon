@@ -119,7 +119,7 @@ class PiGpioTest(TestCase):
         control = pi_gpio.get_control()
 
         # Then
-        self.assertEquals(pi_mock, control)
+        self.assertEqual(pi_mock, control)
         systemd.start_service.assert_called_once_with('pigpiod')
         pi_mock.callback.assert_not_called()
 
