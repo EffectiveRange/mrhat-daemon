@@ -30,7 +30,7 @@ class AppConfigLoaderTest(TestCase):
         result = config_loader.load(arguments)
 
         # Then
-        self.assertEquals(17, result['interrupt_pin'])
+        self.assertEqual(17, result['interrupt_pin'])
 
     def test_load_default_config_when_config_file_not_found(self):
         # Given
@@ -44,7 +44,7 @@ class AppConfigLoaderTest(TestCase):
         result = config_loader.load(arguments)
 
         # Then
-        self.assertEquals('path/to/firmwares', result['firmware_dir'])
+        self.assertEqual('path/to/firmwares', result['firmware_dir'])
 
 
 if __name__ == '__main__':

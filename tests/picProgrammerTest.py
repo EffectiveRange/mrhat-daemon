@@ -27,7 +27,7 @@ class PicProgrammerTest(TestCase):
 
         # When
         with PicProgrammer(config, platform_access, file_downloader) as pic_programmer:
-            self.assertEquals(
+            self.assertEqual(
                 ['picprogrammer', '--gpio-prog-en', '8', '--gpio-mclr', '11', '--gpio-clk', '6', '--gpio-data', '7'],
                 pic_programmer._base_command,
             )
@@ -95,9 +95,9 @@ class PicProgrammerTest(TestCase):
         result = pic_programmer.load_firmware()
 
         # Then
-        self.assertEquals(f'{TEST_RESOURCE_ROOT}/firmware/fw-mrhat-1.0.1-production.hex', result.path)
-        self.assertEquals('hex', result.format)
-        self.assertEquals(Version('1.0.1'), result.version)
+        self.assertEqual(f'{TEST_RESOURCE_ROOT}/firmware/fw-mrhat-1.0.1-production.hex', result.path)
+        self.assertEqual('hex', result.format)
+        self.assertEqual(Version('1.0.1'), result.version)
 
     def test_load_firmware_file_when_no_extension(self):
         # Given
@@ -111,9 +111,9 @@ class PicProgrammerTest(TestCase):
         result = pic_programmer.load_firmware()
 
         # Then
-        self.assertEquals(f'{TEST_RESOURCE_ROOT}/firmware/fw-mrhat-1.0.0-production', result.path)
-        self.assertEquals('hex', result.format)
-        self.assertEquals(Version('1.0.0'), result.version)
+        self.assertEqual(f'{TEST_RESOURCE_ROOT}/firmware/fw-mrhat-1.0.0-production', result.path)
+        self.assertEqual('hex', result.format)
+        self.assertEqual(Version('1.0.0'), result.version)
 
     def test_load_firmware_file_when_no_version(self):
         # Given
@@ -127,9 +127,9 @@ class PicProgrammerTest(TestCase):
         result = pic_programmer.load_firmware()
 
         # Then
-        self.assertEquals(f'{TEST_RESOURCE_ROOT}/firmware/fw-mrhat-production.hex', result.path)
-        self.assertEquals('hex', result.format)
-        self.assertEquals(Version('0.0.0'), result.version)
+        self.assertEqual(f'{TEST_RESOURCE_ROOT}/firmware/fw-mrhat-production.hex', result.path)
+        self.assertEqual('hex', result.format)
+        self.assertEqual(Version('0.0.0'), result.version)
 
     def test_load_firmware_file_when_file_not_exists(self):
         # Given
@@ -156,9 +156,9 @@ class PicProgrammerTest(TestCase):
         result = pic_programmer.load_firmware()
 
         # Then
-        self.assertEquals(f'{TEST_RESOURCE_ROOT}/firmware/fw-mrhat-1.1.1-production.hex', result.path)
-        self.assertEquals('hex', result.format)
-        self.assertEquals(Version('1.1.1'), result.version)
+        self.assertEqual(f'{TEST_RESOURCE_ROOT}/firmware/fw-mrhat-1.1.1-production.hex', result.path)
+        self.assertEqual('hex', result.format)
+        self.assertEqual(Version('1.1.1'), result.version)
 
     def test_load_latest_firmware_file_when_directory_not_exists(self):
         # Given
@@ -186,9 +186,9 @@ class PicProgrammerTest(TestCase):
         result = pic_programmer.load_firmware()
 
         # Then
-        self.assertEquals(f'{TEST_RESOURCE_ROOT}/firmware/fw-mrhat-1.1.1-production.hex', result.path)
-        self.assertEquals('hex', result.format)
-        self.assertEquals(Version('1.1.1'), result.version)
+        self.assertEqual(f'{TEST_RESOURCE_ROOT}/firmware/fw-mrhat-1.1.1-production.hex', result.path)
+        self.assertEqual('hex', result.format)
+        self.assertEqual(Version('1.1.1'), result.version)
 
     def test_upgrade_firmware_when_device_is_available(self):
         # Given

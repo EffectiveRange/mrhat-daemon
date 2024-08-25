@@ -25,8 +25,8 @@ class BuildConfigLoaderTest(TestCase):
 
         # Then
         self.assertTrue(result['source-file'].startswith('https://raw.githubusercontent.com/EffectiveRange/fw-mrhat/'))
-        self.assertEquals('generated/definitions.py', result['output-file'])
-        self.assertEquals('generated', result['download-dir'])
+        self.assertEqual('generated/definitions.py', result['output-file'])
+        self.assertEqual('generated', result['download-dir'])
 
     def test_load_raises_error_when_config_file_is_invalid(self):
         # Given
