@@ -31,7 +31,7 @@ class GenerateDefinitionsAndBuild(build_py):
 
 setup(
     name='mrhat-daemon',
-    version='1.0.0',
+    version='1.1.0',
     description='MrHat supervisor background service',
     long_description='MrHat supervisor background service',
     author='Ferenc Nandor Janky & Attila Gombos',
