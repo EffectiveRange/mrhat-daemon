@@ -14,11 +14,11 @@
 | mrhat\_daemon/\_\_init\_\_.py    |        8 |        0 |        0 |        0 |    100% |           |
 | mrhat\_daemon/appConfigLoader.py |       27 |        0 |        4 |        0 |    100% |           |
 | mrhat\_daemon/i2cControl.py      |       81 |        0 |       14 |        3 |     97% |67->exit, 77->exit, 94->104 |
-| mrhat\_daemon/mrHatControl.py    |       90 |        0 |       12 |        0 |    100% |           |
+| mrhat\_daemon/mrHatControl.py    |       98 |        0 |       12 |        0 |    100% |           |
 | mrhat\_daemon/mrHatDaemon.py     |       14 |        0 |        0 |        0 |    100% |           |
 | mrhat\_daemon/piGpio.py          |       97 |        0 |       30 |        7 |     94% |72->exit, 99->102, 102->exit, 107->110, 115->118, 136->exit, 155->exit |
 | mrhat\_daemon/picProgrammer.py   |      125 |        0 |       30 |        2 |     99% |90->93, 179->178 |
-|                        **TOTAL** |  **576** |    **0** |  **102** |   **14** | **98%** |           |
+|                        **TOTAL** |  **584** |    **0** |  **102** |   **14** | **98%** |           |
 
 
 ## Setup coverage badge
