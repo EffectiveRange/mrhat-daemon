@@ -24,7 +24,7 @@ from generated import (
     REG_VAL_I2C_CLIENT_ERROR_READ_UNDERFLOW,
     REG_ADDR_RD_END,
 )
-from mrhat_daemon import II2CControl, IPicProgrammer, IPlatformAccess, IPiGpio
+from mrhat_daemon import II2CControl, IPicProgrammer, IPlatformAccess, IPiGpio, I2CError
 
 log = get_logger('MrHatControl')
 
@@ -84,7 +84,7 @@ class MrHatControl(IMrHatControl):
 
         self._open_connection()
 
-        registers = self._get_device_registers()
+        registers = self._get_registers_on_startup()
 
         self._get_device_status(registers)
 
@@ -98,6 +98,17 @@ class MrHatControl(IMrHatControl):
     def _close_connection(self) -> None:
         self._i2c_control.close_device()
         self._pi_gpio.stop()
+
+    def _get_registers_on_startup(self) -> list[int]:
+        try:
+            registers = self._get_device_registers()
+        except I2CError as error:
+            log.error('Failed to read registers, possibly no firmware on device', error=error)
+            self._upgrade_firmware()
+
+            registers = self._get_device_registers()
+
+        return registers
 
     def _get_device_status(self, registers: list[int]) -> list[DeviceStatus]:
         status = self._get_status_flags(registers)
