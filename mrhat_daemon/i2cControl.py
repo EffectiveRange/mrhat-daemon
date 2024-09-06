@@ -14,6 +14,7 @@ from mrhat_daemon import IPiGpio
 
 log = get_logger('I2CControl')
 
+I2C_NO_DEVICE = -1
 I2C_ERR_CLEAN = 0x80
 
 
@@ -54,7 +55,7 @@ class I2CControl(II2CControl):
         self._i2c_address = config.address
         self._retry_limit = config.retry_limit
         self._retry_delay = config.retry_delay
-        self._device = None
+        self._device = I2C_NO_DEVICE
         self._lock = Lock()
 
     def __enter__(self) -> 'I2CControl':
@@ -64,33 +65,26 @@ class I2CControl(II2CControl):
         self.close_device()
 
     def open_device(self) -> None:
-        if not self._device:
-            self._lock.acquire()
-
-            control = self._pi_gpio.get_control()
-            self._device = control.i2c_open(self._i2c_bus_id, self._i2c_address)
-            log.info('Opened I2C device', bus=self._i2c_bus_id, address=self._i2c_address, device=self._device)
-
-            self._lock.release()
+        with self._lock:
+            if self._device == I2C_NO_DEVICE:
+                control = self._pi_gpio.get_control()
+                self._device = control.i2c_open(self._i2c_bus_id, self._i2c_address)
+                log.info('Opened I2C device', bus=self._i2c_bus_id, address=self._i2c_address, device=self._device)
 
     def close_device(self) -> None:
-        if self._device is not None:
-            self._lock.acquire()
-
-            control = self._pi_gpio.get_control()
-            control.i2c_close(self._device)
-            log.info('Closed I2C device', bus=self._i2c_bus_id, address=self._i2c_address, device=self._device)
-            self._device = None
-
-            self._lock.release()
+        with self._lock:
+            if self._device != I2C_NO_DEVICE:
+                control = self._pi_gpio.get_control()
+                control.i2c_close(self._device)
+                log.info('Closed I2C device', bus=self._i2c_bus_id, address=self._i2c_address, device=self._device)
+                self._device = I2C_NO_DEVICE
 
     def read_block_data(self, length: int) -> list[int]:
+        self.open_device()
         return list(self._i2c_transaction(self._read_block_data, length))
 
     def _i2c_transaction(self, operation: Callable[..., Any], *args: Any) -> Any:
-        try:
-            self._lock.acquire()
-
+        with self._lock:
             for retry in range(0, self._retry_limit + 1):
                 try:
                     return operation(*args)
@@ -100,8 +94,6 @@ class I2CControl(II2CControl):
                         raise error
                     log.warn(f'{error.message} -> retrying', error=error.error, data=error.data, retry=retry)
                     time.sleep(self._retry_delay)
-        finally:
-            self._lock.release()
 
     def _read_block_data(self, length: int) -> list[int]:
         control = self._pi_gpio.get_control()
