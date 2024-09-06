@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pigpio
 from context_logger import setup_logging
 
-from mrhat_daemon import IPiGpio, I2CConfig, I2CControl, I2CError
+from mrhat_daemon import IPiGpio, I2CConfig, I2CControl, I2CError, I2C_NO_DEVICE
 
 
 class I2cControlTest(TestCase):
@@ -30,16 +30,17 @@ class I2cControlTest(TestCase):
 
     def test_open_device(self):
         # Given
-        pi_gpio, config = create_components()
+        pi_gpio, config = create_components(1)
         i2c_control = I2CControl(pi_gpio, config)
 
         # When
         i2c_control.open_device()
 
         # Then
+        self.assertEqual(1, i2c_control._device)
         pi_gpio.get_control().i2c_open.assert_called_once_with(1, 0x33)
 
-    def test_clode_device(self):
+    def test_close_device(self):
         # Given
         pi_gpio, config = create_components(2)
         i2c_control = I2CControl(pi_gpio, config)
@@ -49,6 +50,7 @@ class I2cControlTest(TestCase):
         i2c_control.close_device()
 
         # Then
+        self.assertEqual(I2C_NO_DEVICE, i2c_control._device)
         pi_gpio.get_control().i2c_close.assert_called_once_with(2)
 
     def test_read_block_data(self):
@@ -61,6 +63,19 @@ class I2cControlTest(TestCase):
         result = i2c_control.read_block_data(10)
 
         # Then
+        pi_gpio.get_control().i2c_read_device.assert_called_once_with(1, 10)
+        self.assertEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], result)
+
+    def test_read_block_data_when_device_is_not_open(self):
+        # Given
+        pi_gpio, config = create_components(1, 10)
+        i2c_control = I2CControl(pi_gpio, config)
+
+        # When
+        result = i2c_control.read_block_data(10)
+
+        # Then
+        pi_gpio.get_control().i2c_open.assert_called_once_with(1, 0x33)
         pi_gpio.get_control().i2c_read_device.assert_called_once_with(1, 10)
         self.assertEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], result)
 
