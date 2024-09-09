@@ -166,10 +166,89 @@ class MrHatControlTest(TestCase):
         i2c_control.read_block_data.assert_called_once_with(REGISTER_SPACE_LENGTH)
         platform_access.execute_command_async.assert_called_once_with(['poweroff', '--force'])
 
+    def test_get_readable_registers(self):
+        # Given
+        pi_gpio, pic_programmer, i2c_control, platform_access, config = create_components()
+        mr_hat_control = MrHatControl(pi_gpio, pic_programmer, i2c_control, platform_access, config)
+
+        # When
+        result = mr_hat_control.get_readable_registers()
+
+        # Then
+        self.assertEqual(list(range(0, 20)), result)
+
+    def test_get_writable_registers(self):
+        # Given
+        pi_gpio, pic_programmer, i2c_control, platform_access, config = create_components()
+        mr_hat_control = MrHatControl(pi_gpio, pic_programmer, i2c_control, platform_access, config)
+
+        # When
+        result = mr_hat_control.get_writable_registers()
+
+        # Then
+        self.assertEqual(list(range(1, 10)), result)
+
+    def test_get_register(self):
+        # Given
+        pi_gpio, pic_programmer, i2c_control, platform_access, config = create_components()
+        mr_hat_control = MrHatControl(pi_gpio, pic_programmer, i2c_control, platform_access, config)
+
+        # When
+        result = mr_hat_control.get_register(1)
+
+        # Then
+        i2c_control.read_block_data.assert_called_once_with(REGISTER_SPACE_LENGTH)
+        self.assertEqual(128, result)
+
+    def test_set_register(self):
+        # Given
+        pi_gpio, pic_programmer, i2c_control, platform_access, config = create_components()
+        mr_hat_control = MrHatControl(pi_gpio, pic_programmer, i2c_control, platform_access, config)
+
+        # When
+        mr_hat_control.set_register(1, 123)
+
+        # Then
+        i2c_control.write_register.assert_called_once_with(1, 123)
+
+    def test_get_flag(self):
+        # Given
+        pi_gpio, pic_programmer, i2c_control, platform_access, config = create_components()
+        mr_hat_control = MrHatControl(pi_gpio, pic_programmer, i2c_control, platform_access, config)
+
+        # When
+        result = mr_hat_control.get_flag(2, 2)
+
+        # Then
+        i2c_control.read_block_data.assert_called_once_with(REGISTER_SPACE_LENGTH)
+        self.assertEqual(1, result)
+
+    def test_set_flag(self):
+        # Given
+        pi_gpio, pic_programmer, i2c_control, platform_access, config = create_components()
+        mr_hat_control = MrHatControl(pi_gpio, pic_programmer, i2c_control, platform_access, config)
+
+        # When
+        mr_hat_control.set_flag(2, 1)
+
+        # Then
+        i2c_control.write_register.assert_called_once_with(2, 7)
+
+    def test_clear_flag(self):
+        # Given
+        pi_gpio, pic_programmer, i2c_control, platform_access, config = create_components()
+        mr_hat_control = MrHatControl(pi_gpio, pic_programmer, i2c_control, platform_access, config)
+
+        # When
+        mr_hat_control.clear_flag(2, 0)
+
+        # Then
+        i2c_control.write_register.assert_called_once_with(2, 4)
+
 
 def create_components(i2c_data=None):
     if i2c_data is None:
-        i2c_data = [0, 128, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 1, 0, 1]
+        i2c_data = [0, 128, 5, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 1, 0, 1]
     pi_gpio = MagicMock(spec=IPiGpio)
     pic_programmer = MagicMock(spec=IPicProgrammer)
     pic_programmer.load_firmware.return_value = FirmwareFile('', '', Version('1.0.1'))

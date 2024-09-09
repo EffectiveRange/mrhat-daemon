@@ -88,7 +88,7 @@ def main() -> None:
             PicProgrammer(programmer_config, platform_access, file_downloader) as pic_programmer,
             I2CControl(pi_gpio, i2c_config) as i2c_control,
             MrHatControl(pi_gpio, pic_programmer, i2c_control, platform_access, control_config) as mr_hat_control,
-            ApiServer(api_server_config) as api_server,
+            ApiServer(api_server_config, mr_hat_control) as api_server,
         ):
             mr_hat_daemon = MrHatDaemon(mr_hat_control, api_server)
 
