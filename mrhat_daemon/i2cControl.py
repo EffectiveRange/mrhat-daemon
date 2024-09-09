@@ -5,7 +5,7 @@
 import time
 from dataclasses import dataclass
 from threading import Lock
-from typing import Any, Callable
+from typing import Any, Callable, Optional, Union
 
 import pigpio
 from context_logger import get_logger
@@ -28,11 +28,20 @@ class I2CConfig:
 
 class I2CError(Exception):
 
-    def __init__(self, message: str, error: Any, data: list[int]) -> None:
+    def __init__(self, message: str, error: Any, data: Union[int, list[int]], register: Optional[int] = None) -> None:
         super().__init__(message)
         self.message = message
         self.error = error
         self.data = data
+        self.register = register
+
+    def __repr__(self) -> str:
+        properties = f'{self.message}, error={self.error}, data={self.data}'
+
+        if self.register is not None:
+            properties += f', register={self.register}'
+
+        return f'I2CError({properties})'
 
 
 class II2CControl(object):
@@ -44,6 +53,9 @@ class II2CControl(object):
         raise NotImplementedError()
 
     def read_block_data(self, length: int) -> list[int]:
+        raise NotImplementedError()
+
+    def write_register(self, register: int, data: int) -> None:
         raise NotImplementedError()
 
 
@@ -80,19 +92,23 @@ class I2CControl(II2CControl):
                 self._device = I2C_NO_DEVICE
 
     def read_block_data(self, length: int) -> list[int]:
-        self.open_device()
         return list(self._i2c_transaction(self._read_block_data, length))
 
+    def write_register(self, register: int, data: int) -> None:
+        self._i2c_transaction(self._write_register, register, data)
+
     def _i2c_transaction(self, operation: Callable[..., Any], *args: Any) -> Any:
+        self.open_device()
+
         with self._lock:
             for retry in range(0, self._retry_limit + 1):
                 try:
                     return operation(*args)
                 except I2CError as error:
                     if retry == self._retry_limit:
-                        log.error(f'{error.message} -> giving up', error=error.error, data=error.data, retry=retry)
+                        log.error(f'{error.message} -> giving up', error=error, retry=retry)
                         raise error
-                    log.warn(f'{error.message} -> retrying', error=error.error, data=error.data, retry=retry)
+                    log.warn(f'{error.message} -> retrying', error=error, retry=retry)
                     time.sleep(self._retry_delay)
 
     def _read_block_data(self, length: int) -> list[int]:
@@ -113,3 +129,16 @@ class I2CControl(II2CControl):
         log.info('I2C block data read completed', data=data)
 
         return data
+
+    def _write_register(self, register: int, data: int) -> None:
+        control = self._pi_gpio.get_control()
+
+        try:
+            result: int = control.i2c_write_byte_data(self._device, register, data)
+        except pigpio.error as error:
+            raise I2CError('Failed to write I2C register (exception)', error=error, data=data, register=register)
+
+        if result < 0:
+            raise I2CError('Failed to write I2C register (error code)', error=result, data=data, register=register)
+
+        log.info('I2C register write completed', result=result, data=data)

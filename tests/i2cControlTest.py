@@ -137,11 +137,50 @@ class I2cControlTest(TestCase):
         pi_gpio.get_control().i2c_read_device.assert_has_calls([mock.call(1, 10), mock.call(1, 10)])
         self.assertEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], result)
 
+    def test_write_register(self):
+        # Given
+        pi_gpio, config = create_components(1, 10)
+        i2c_control = I2CControl(pi_gpio, config)
+        i2c_control.open_device()
+
+        # When
+        i2c_control.write_register(2, 11)
+
+        # Then
+        pi_gpio.get_control().i2c_write_byte_data.assert_called_once_with(1, 2, 11)
+
+    def test_write_register_when_write_raises_error(self):
+        # Given
+        pi_gpio, config = create_components(1, 10)
+        pi_gpio.get_control().i2c_write_byte_data.side_effect = pigpio.error(5)
+        i2c_control = I2CControl(pi_gpio, config)
+        i2c_control.open_device()
+
+        # When
+        self.assertRaises(I2CError, i2c_control.write_register, 2, 4)
+
+        # Then
+        pi_gpio.get_control().i2c_write_byte_data.assert_called_with(1, 2, 4)
+
+    def test_write_register_when_write_returns_error_code(self):
+        # Given
+        pi_gpio, config = create_components(1, 10)
+        pi_gpio.get_control().i2c_write_byte_data.return_value = -8
+        i2c_control = I2CControl(pi_gpio, config)
+        i2c_control.open_device()
+
+        # When
+        self.assertRaises(I2CError, i2c_control.write_register, 2, 7)
+
+        # Then
+        pi_gpio.get_control().i2c_write_byte_data.assert_called_with(1, 2, 7)
+
 
 def create_components(device: int = 0, length: int = 10):
     pi_gpio = MagicMock(spec=IPiGpio)
     pi_gpio.get_control().i2c_open.return_value = device
     pi_gpio.get_control().i2c_read_device.return_value = length, [x for x in range(length)]
+    pi_gpio.get_control().i2c_write_byte_data.return_value = 0
     config = I2CConfig(1, 0x33, 3, 0.1)
 
     return pi_gpio, config

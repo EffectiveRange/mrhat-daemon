@@ -23,6 +23,8 @@ from generated import (
     REG_VAL_I2C_CLIENT_ERROR_TRANSMIT_UNDERFLOW,
     REG_VAL_I2C_CLIENT_ERROR_READ_UNDERFLOW,
     REG_ADDR_RD_END,
+    REG_ADDR_WR_START,
+    REG_ADDR_WR_END,
 )
 from mrhat_daemon import II2CControl, IPicProgrammer, IPlatformAccess, IPiGpio, I2CError
 
@@ -54,6 +56,27 @@ class MrHatControlConfig:
 class IMrHatControl(object):
 
     def initialize(self) -> None:
+        raise NotImplementedError()
+
+    def get_readable_registers(self) -> list[int]:
+        raise NotImplementedError()
+
+    def get_writable_registers(self) -> list[int]:
+        raise NotImplementedError()
+
+    def get_register(self, register: int) -> int:
+        raise NotImplementedError()
+
+    def set_register(self, register: int, value: int) -> None:
+        raise NotImplementedError()
+
+    def get_flag(self, register: int, flag: int) -> int:
+        raise NotImplementedError()
+
+    def set_flag(self, register: int, flag: int) -> None:
+        raise NotImplementedError()
+
+    def clear_flag(self, register: int, flag: int) -> None:
         raise NotImplementedError()
 
 
@@ -90,6 +113,33 @@ class MrHatControl(IMrHatControl):
 
         if self._check_firmware(registers) and self._config.upgrade_firmware:
             self._upgrade_firmware()
+
+    def get_readable_registers(self) -> list[int]:
+        return list(range(REGISTER_SPACE_LENGTH))
+
+    def get_writable_registers(self) -> list[int]:
+        return list(range(REG_ADDR_WR_START, REG_ADDR_WR_END + 1))
+
+    def get_register(self, register: int) -> int:
+        registers = self._get_device_registers()
+        return registers[register]
+
+    def set_register(self, register: int, value: int) -> None:
+        self._i2c_control.write_register(register, value)
+
+    def get_flag(self, register: int, flag: int) -> int:
+        registers = self._get_device_registers()
+        return (registers[register] & (1 << flag)) >> flag
+
+    def set_flag(self, register: int, flag: int) -> None:
+        registers = self._get_device_registers()
+        value = registers[register] | (1 << flag)
+        self._i2c_control.write_register(register, value)
+
+    def clear_flag(self, register: int, flag: int) -> None:
+        registers = self._get_device_registers()
+        value = registers[register] & ~(1 << flag)
+        self._i2c_control.write_register(register, value)
 
     def _open_connection(self) -> None:
         self._pi_gpio.start(self._handle_interrupt)
