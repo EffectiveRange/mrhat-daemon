@@ -12,13 +12,14 @@
 | generator/definitionConverter.py |       35 |        0 |        8 |        2 |     95% |52->55, 59->63 |
 | generator/definitionGenerator.py |       32 |        0 |        0 |        0 |    100% |           |
 | mrhat\_daemon/\_\_init\_\_.py    |        8 |        0 |        0 |        0 |    100% |           |
+| mrhat\_daemon/apiServer.py       |      110 |        5 |       26 |        2 |     95% |60-62, 68-69, 79->78, 108->107 |
 | mrhat\_daemon/appConfigLoader.py |       27 |        0 |        4 |        0 |    100% |           |
-| mrhat\_daemon/i2cControl.py      |       79 |        0 |       20 |        6 |     94% |68->exit, 69->68, 75->exit, 76->75, 87->exit, 88->87 |
-| mrhat\_daemon/mrHatControl.py    |       98 |        0 |       12 |        0 |    100% |           |
+| mrhat\_daemon/i2cControl.py      |       92 |        0 |       22 |        6 |     95% |80->exit, 81->80, 87->exit, 88->87, 103->exit, 104->103 |
+| mrhat\_daemon/mrHatControl.py    |      125 |        0 |       12 |        0 |    100% |           |
 | mrhat\_daemon/mrHatDaemon.py     |       14 |        0 |        0 |        0 |    100% |           |
 | mrhat\_daemon/piGpio.py          |       97 |        0 |       30 |        7 |     94% |72->exit, 99->102, 102->exit, 107->110, 115->118, 136->exit, 155->exit |
 | mrhat\_daemon/picProgrammer.py   |      125 |        0 |       30 |        2 |     99% |90->93, 179->178 |
-|                        **TOTAL** |  **582** |    **0** |  **108** |   **17** | **98%** |           |
+|                        **TOTAL** |  **732** |    **5** |  **136** |   **19** | **97%** |           |
 
 
 ## Setup coverage badge
