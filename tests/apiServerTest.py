@@ -187,7 +187,7 @@ class ApiServerTest(TestCase):
             Thread(target=api_server.run).start()
 
             # When
-            response = client.post('/api/register/1/3', json={'value': '1'})
+            response = client.post('/api/register/1/3/1')
 
             # Then
             mr_hat_control.set_flag.assert_called_once_with(1, 3)
@@ -203,7 +203,7 @@ class ApiServerTest(TestCase):
             Thread(target=api_server.run).start()
 
             # When
-            response = client.post('/api/register/1/3', json={'value': '0'})
+            response = client.post('/api/register/1/3/0')
 
             # Then
             mr_hat_control.clear_flag.assert_called_once_with(1, 3)
@@ -219,7 +219,7 @@ class ApiServerTest(TestCase):
             Thread(target=api_server.run).start()
 
             # When
-            response = client.post('/api/register/1/5', json={'value': '2'})
+            response = client.post('/api/register/1/5/2')
 
             # Then
             self.assertEqual(400, response.status_code)
@@ -235,7 +235,7 @@ class ApiServerTest(TestCase):
             Thread(target=api_server.run).start()
 
             # When
-            response = client.post('/api/register/1/5', json={'value': '1'})
+            response = client.post('/api/register/1/5/1')
 
             # Then
             self.assertEqual(500, response.status_code)

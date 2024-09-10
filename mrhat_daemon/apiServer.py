@@ -104,31 +104,42 @@ class ApiServer(IApiServer):
 
     def _set_up_register_flag_api(self) -> None:
 
-        @self._app.route('/api/register/<address>/<position>', methods=['GET', 'POST'])
-        def register_flag_api(address: str, position: str) -> Response:
-            log.info('Register flag API request', request=request, data=request.data)
+        @self._app.route('/api/register/<address>/<position>', methods=['GET'])
+        def register_get_flag_api(address: str, position: str) -> Response:
+            log.info('Register flag read API request', request=request, data=request.data)
 
             try:
-                write = request.method == 'POST'
-
                 register = int(address)
-                self._validate_register(register, write)
+                self._validate_register(register, False)
                 flag = int(position)
                 self._validate_flag(flag)
 
-                if write:
-                    data = json.loads(request.data)
-                    value = int(data['value'])
-                    self._validate_bit(value)
+                value = self._mr_hat_control.get_flag(register, flag)
+                return jsonify({'value': value})
+            except ValueError as error:
+                log.error('Invalid request', request=request, data=request.data, error=error)
+                return Response(status=400)
+            except Exception as error:
+                log.error('Serving the request failed', address=address, position=position, error=error)
+                return Response(status=500)
 
-                    if value:
-                        self._mr_hat_control.set_flag(register, flag)
-                    else:
-                        self._mr_hat_control.clear_flag(register, flag)
-                    return Response(status=202)
+        @self._app.route('/api/register/<address>/<position>/<value>', methods=['POST'])
+        def register_set_flag_api(address: str, position: str, value: str) -> Response:
+            log.info('Register flag write API request', request=request, data=request.data)
+
+            try:
+                register = int(address)
+                self._validate_register(register, True)
+                flag = int(position)
+                self._validate_flag(flag)
+                is_set = int(value)
+                self._validate_bit(is_set)
+
+                if is_set:
+                    self._mr_hat_control.set_flag(register, flag)
                 else:
-                    value = self._mr_hat_control.get_flag(register, flag)
-                    return jsonify({'value': value})
+                    self._mr_hat_control.clear_flag(register, flag)
+                return Response(status=202)
             except ValueError as error:
                 log.error('Invalid request', request=request, data=request.data, error=error)
                 return Response(status=400)
