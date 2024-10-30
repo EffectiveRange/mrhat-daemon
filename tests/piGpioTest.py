@@ -2,9 +2,11 @@ import unittest
 from unittest import TestCase
 from unittest.mock import MagicMock
 
+from common_utility import delete_directory, copy_file
 from context_logger import setup_logging
 from pigpio import pi
 from systemd_dbus import Systemd
+from test_utility import compare_files
 
 from mrhat_daemon import (
     IPlatformAccess,
@@ -15,9 +17,13 @@ from mrhat_daemon import (
     GpioEdgeType,
     PiGpioError,
 )
+from tests import TEST_FILE_SYSTEM_ROOT, TEST_RESOURCE_ROOT
 
 
 class PiGpioTest(TestCase):
+    PIGPIO_SERVICE_FILE = f'{TEST_FILE_SYSTEM_ROOT}/lib/systemd/system/pigpiod.service'
+    SOURCE_PIGPIO_SERVICE_FILE = f'{TEST_RESOURCE_ROOT}/config/pigpiod.service'
+    EXPECTED_PIGPIO_SERVICE_FILE = f'{TEST_RESOURCE_ROOT}/expected/pigpiod.service'
 
     @classmethod
     def setUpClass(cls):
@@ -25,13 +31,15 @@ class PiGpioTest(TestCase):
 
     def setUp(self):
         print()
+        delete_directory(TEST_FILE_SYSTEM_ROOT)
+        copy_file(self.SOURCE_PIGPIO_SERVICE_FILE, self.PIGPIO_SERVICE_FILE)
 
     def test_startup_and_shutdown(self):
         # Given
         systemd, platform_access, service_config, interrupt_config, pi_mock = create_components()
 
         # When
-        with PiGpio(systemd, platform_access, service_config, interrupt_config):
+        with PiGpio(systemd, platform_access, service_config, interrupt_config, service_file=self.PIGPIO_SERVICE_FILE):
             platform_access.get_executable_path.assert_called_once_with('pigpiod')
             systemd.stop_service.assert_called_once_with('pigpiod')
             systemd.reset_mock()
@@ -39,13 +47,26 @@ class PiGpioTest(TestCase):
         # Then
         systemd.stop_service.assert_called_once_with('pigpiod')
 
+    def test_startup_when_pigpiod_service_file_needs_update(self):
+        # Given
+        systemd, platform_access, service_config, interrupt_config, pi_mock = create_components()
+
+        # When
+        with PiGpio(systemd, platform_access, service_config, interrupt_config, service_file=self.PIGPIO_SERVICE_FILE):
+
+            # Then
+            self.assertTrue(compare_files(self.EXPECTED_PIGPIO_SERVICE_FILE, self.PIGPIO_SERVICE_FILE))
+            systemd.reload_daemon.assert_called_once()
+
     def test_startup_when_pigpiod_is_not_available(self):
         # Given
         systemd, platform_access, service_config, interrupt_config, pi_mock = create_components()
         platform_access.get_executable_path.return_value = None
 
         def create_pi_gpio():
-            with PiGpio(systemd, platform_access, service_config, interrupt_config):
+            with PiGpio(
+                systemd, platform_access, service_config, interrupt_config, service_file=self.PIGPIO_SERVICE_FILE
+            ):
                 pass
 
         # When
@@ -58,7 +79,9 @@ class PiGpioTest(TestCase):
         # Given
         systemd, platform_access, service_config, interrupt_config, pi_mock = create_components()
         systemd.is_active.side_effect = [False, True]
-        pi_gpio = PiGpio(systemd, platform_access, service_config, interrupt_config, lambda: pi_mock)
+        pi_gpio = PiGpio(
+            systemd, platform_access, service_config, interrupt_config, lambda: pi_mock, self.PIGPIO_SERVICE_FILE
+        )
         callback = MagicMock()
 
         # When
@@ -72,7 +95,9 @@ class PiGpioTest(TestCase):
         # Given
         systemd, platform_access, service_config, interrupt_config, pi_mock = create_components()
         systemd.is_active.return_value = False
-        pi_gpio = PiGpio(systemd, platform_access, service_config, interrupt_config, lambda: pi_mock)
+        pi_gpio = PiGpio(
+            systemd, platform_access, service_config, interrupt_config, lambda: pi_mock, self.PIGPIO_SERVICE_FILE
+        )
         callback = MagicMock()
 
         # When
@@ -85,7 +110,9 @@ class PiGpioTest(TestCase):
         # Given
         systemd, platform_access, service_config, interrupt_config, pi_mock = create_components()
         systemd.is_active.side_effect = [True, False]
-        pi_gpio = PiGpio(systemd, platform_access, service_config, interrupt_config, lambda: pi_mock)
+        pi_gpio = PiGpio(
+            systemd, platform_access, service_config, interrupt_config, lambda: pi_mock, self.PIGPIO_SERVICE_FILE
+        )
         callback = MagicMock()
         pi_gpio.start(callback)
 
@@ -101,7 +128,9 @@ class PiGpioTest(TestCase):
         # Given
         systemd, platform_access, service_config, interrupt_config, pi_mock = create_components()
         systemd.is_active.return_value = True
-        pi_gpio = PiGpio(systemd, platform_access, service_config, interrupt_config, lambda: pi_mock)
+        pi_gpio = PiGpio(
+            systemd, platform_access, service_config, interrupt_config, lambda: pi_mock, self.PIGPIO_SERVICE_FILE
+        )
 
         # When
         self.assertRaises(PiGpioError, pi_gpio.stop)
@@ -113,7 +142,9 @@ class PiGpioTest(TestCase):
         # Given
         systemd, platform_access, service_config, interrupt_config, pi_mock = create_components()
         systemd.is_active.side_effect = [False, True]
-        pi_gpio = PiGpio(systemd, platform_access, service_config, interrupt_config, lambda: pi_mock)
+        pi_gpio = PiGpio(
+            systemd, platform_access, service_config, interrupt_config, lambda: pi_mock, self.PIGPIO_SERVICE_FILE
+        )
 
         # When
         control = pi_gpio.get_control()

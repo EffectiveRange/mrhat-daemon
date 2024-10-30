@@ -2,12 +2,14 @@
 # SPDX-FileCopyrightText: 2024 Attila Gombos <attila.gombos@effective-range.com>
 # SPDX-License-Identifier: MIT
 
+import fileinput
 import time
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Callable, Optional
 
 import pigpio
+from common_utility import is_file_matches_pattern
 from context_logger import get_logger
 from pigpio import pi
 from systemd_dbus import Systemd
@@ -76,12 +78,15 @@ class PiGpio(IPiGpio):
         service_config: ServiceConfig,
         interrupt_config: InterruptConfig,
         pi_provider: Any = lambda: pi(),
+        service_file: str = '/lib/systemd/system/pigpiod.service',
     ) -> None:
         self._systemd = systemd
         self._platform_access = platform_access
         self._service_config = service_config
         self._interrupt_config = interrupt_config
         self._pi_provider = pi_provider
+        self._service_file = service_file
+        self._exec_start = f'ExecStart=/usr/bin/{self.SERVICE_NAME} -l -t 0\n'
         self._pi = None
         self._callback = None
 
@@ -123,6 +128,17 @@ class PiGpio(IPiGpio):
             raise PiGpioError('Service is not available')
 
         log.info('Service is available', service=self.SERVICE_NAME, path=service)
+
+        if not is_file_matches_pattern(self._service_file, self._exec_start):
+            log.info('Updating service file', file=self._service_file)
+
+            with fileinput.FileInput(self._service_file, inplace=True) as file:
+                for line in file:
+                    if 'ExecStart' in line:
+                        line = self._exec_start
+                    print(line, end='')
+
+            self._systemd.reload_daemon()
 
     def _wait_for_service_state(self, active: bool) -> None:
         if active:
