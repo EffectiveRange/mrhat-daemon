@@ -9,17 +9,17 @@
 | generator/\_\_init\_\_.py        |        5 |        0 |        0 |        0 |    100% |           |
 | generator/buildConfigLoader.py   |       19 |        0 |        4 |        0 |    100% |           |
 | generator/codeFormatter.py       |       10 |        0 |        0 |        0 |    100% |           |
-| generator/definitionConverter.py |       35 |        0 |        8 |        2 |     95% |52->55, 59->63 |
+| generator/definitionConverter.py |       35 |        0 |        6 |        1 |     98% |    59->63 |
 | generator/definitionGenerator.py |       32 |        0 |        0 |        0 |    100% |           |
 | mrhat\_daemon/\_\_init\_\_.py    |        8 |        0 |        0 |        0 |    100% |           |
-| mrhat\_daemon/apiServer.py       |      121 |        5 |       28 |        3 |     95% |60-62, 68-69, 79->78, 108->107, 127->126 |
+| mrhat\_daemon/apiServer.py       |      121 |        5 |       14 |        0 |     96% |60-62, 68-69 |
 | mrhat\_daemon/appConfigLoader.py |       27 |        0 |        4 |        0 |    100% |           |
-| mrhat\_daemon/i2cControl.py      |       92 |        0 |       22 |        6 |     95% |80->exit, 81->80, 87->exit, 88->87, 103->exit, 104->103 |
-| mrhat\_daemon/mrHatControl.py    |      125 |        0 |       12 |        0 |    100% |           |
+| mrhat\_daemon/i2cControl.py      |       92 |        0 |       14 |        2 |     98% |88->exit, 104->exit |
+| mrhat\_daemon/mrHatControl.py    |      125 |        0 |       10 |        0 |    100% |           |
 | mrhat\_daemon/mrHatDaemon.py     |       14 |        0 |        0 |        0 |    100% |           |
-| mrhat\_daemon/piGpio.py          |       97 |        0 |       30 |        7 |     94% |72->exit, 99->102, 102->exit, 107->110, 115->118, 136->exit, 155->exit |
-| mrhat\_daemon/picProgrammer.py   |      125 |        0 |       30 |        2 |     99% |90->93, 179->178 |
-|                        **TOTAL** |  **743** |    **5** |  **138** |   **20** | **97%** |           |
+| mrhat\_daemon/piGpio.py          |      109 |        0 |       30 |        7 |     95% |104->107, 107->exit, 112->115, 120->123, 132->exit, 152->exit, 171->exit |
+| mrhat\_daemon/picProgrammer.py   |      125 |        0 |       26 |        2 |     99% |90->93, 179->178 |
+|                        **TOTAL** |  **755** |    **5** |  **108** |   **12** | **98%** |           |
 
 
 ## Setup coverage badge
