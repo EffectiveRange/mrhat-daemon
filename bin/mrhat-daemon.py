@@ -10,15 +10,15 @@ from pathlib import Path
 from signal import signal, SIGINT, SIGTERM
 from typing import Any
 
-from common_utility import SessionProvider, FileDownloader
+from common_utility import SessionProvider, FileDownloader, ConfigLoader
 from context_logger import setup_logging, get_logger
+from dbus import SystemBus
 from systemd_dbus import SystemdDbus
 
 from mrhat_daemon import (
     MrHatDaemon,
     ApiServer,
     I2CControl,
-    AppConfigLoader,
     MrHatControl,
     PicProgrammer,
     PlatformAccess,
@@ -44,45 +44,47 @@ def main() -> None:
 
     setup_logging(APPLICATION_NAME)
 
-    config = AppConfigLoader(resource_root).load(arguments)
+    log.info(f'Started {APPLICATION_NAME}', arguments=arguments)
+
+    config = ConfigLoader(resource_root, f'config/{APPLICATION_NAME}.conf').load(arguments)
 
     _update_logging(config)
 
-    log.info(f'Started {APPLICATION_NAME}', arguments=config)
+    log.info('Retrieved configuration', configuration=config)
+
+    try:
+        api_server_port = int(config['api_server_port'])
+        power_off_forced = bool(config['power_off_forced'])
+        systemd_retry_limit = int(config['systemd_retry_limit'])
+        systemd_retry_delay = float(config['systemd_retry_delay'])
+        firmware_package_dir = config['firmware_package_dir']
+        firmware_package_file = config.get('firmware_package_file')
+        firmware_auto_upgrade = bool(config['firmware_auto_upgrade'])
+        interrupt_pin = int(config['interrupt_pin'])
+        interrupt_pull = GpioPullType[config['interrupt_pull']]
+        interrupt_edge = GpioEdgeType[config['interrupt_edge']]
+        i2c_bus_id = int(config['i2c_bus_id'])
+        i2c_address = int(config['i2c_address'], 16)
+        i2c_retry_limit = int(config['i2c_retry_limit'])
+        i2c_retry_delay = float(config['i2c_retry_delay'])
+    except KeyError as error:
+        raise ValueError(f'Missing configuration key: {error}')
 
     platform_access = PlatformAccess()
     session_provider = SessionProvider()
-    file_downloader = FileDownloader(session_provider, config.get('firmware_dir', '/opt/effective-range/fw/'))
+    file_downloader = FileDownloader(session_provider, firmware_package_dir)
 
-    systemd = SystemdDbus()
+    systemd = SystemdDbus(SystemBus())
 
-    service_retry_limit = int(config.get('service_retry_limit', 5))
-    service_retry_delay = float(config.get('service_retry_delay', 1))
-    service_config = ServiceConfig(service_retry_limit, service_retry_delay)
-
-    gpio_pin = int(config.get('interrupt_pin', 4))
-    pull_type = GpioPullType[config.get('interrupt_pull', 'PULL_UP')]
-    edge_type = GpioEdgeType[config.get('interrupt_edge', 'FALLING_EDGE')]
-    interrupt_config = InterruptConfig(gpio_pin, pull_type, edge_type)
+    service_config = ServiceConfig(systemd_retry_limit, systemd_retry_delay)
+    interrupt_config = InterruptConfig(interrupt_pin, interrupt_pull, interrupt_edge)
 
     with PiGpio(systemd, platform_access, service_config, interrupt_config) as pi_gpio:
-        firmware_dir = config.get('firmware_dir')
-        firmware_file = config.get('firmware_file')
         gpio_options = {gpio: int(pin) for gpio, pin in config.items() if gpio.startswith('gpio')}
-        programmer_config = ProgrammerConfig(gpio_options, firmware_dir, firmware_file)
-
-        i2c_bus_id = int(config.get('i2c_bus_id', 1))
-        i2c_address = int(config.get('i2c_address', '0x33'), 16)
-        i2c_retry_limit = int(config.get('i2c_retry_limit', 3))
-        i2c_retry_delay = float(config.get('i2c_retry_delay', 0.1))
+        programmer_config = ProgrammerConfig(gpio_options, firmware_package_dir, firmware_package_file)
         i2c_config = I2CConfig(i2c_bus_id, i2c_address, i2c_retry_limit, i2c_retry_delay)
-
-        control_config = MrHatControlConfig(
-            bool(config.get('upgrade_firmware', False)), bool(config.get('force_power_off', False))
-        )
-
-        server_port = int(config.get('server_port', 9000))
-        api_server_config = ApiServerConfiguration(server_port, resource_root)
+        control_config = MrHatControlConfig(firmware_auto_upgrade, power_off_forced)
+        api_server_config = ApiServerConfiguration(api_server_port, resource_root)
 
         with (
             PicProgrammer(programmer_config, platform_access, file_downloader) as pic_programmer,
@@ -105,17 +107,35 @@ def main() -> None:
 
 def _get_arguments() -> dict[str, Any]:
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-c', '--config-file', help='configuration file', default=f'/etc/{APPLICATION_NAME}.conf')
-    parser.add_argument('--log-file', help='log file path')
-    parser.add_argument('--log-level', help='logging level')
-    parser.add_argument('-p', '--server-port', help='web server port to listen on', type=int)
-    parser.add_argument('-b', '--i2c-bus-number', help='I2C bus number of the device', type=int)
-    parser.add_argument('-a', '--i2c-address', help='I2C address of the device', type=int)
-    parser.add_argument('-i', '--interrupt-pin', help='interrupt GPIO pin number of the device', type=int)
-    parser.add_argument('-d', '--firmware-dir', help='MrHat firmware directory path')
-    parser.add_argument('-F', '--firmware-file', help='MrHat firmware file path or URL')
-    parser.add_argument('-u', '--upgrade-firmware', help='automatically upgrade firmware', action=BooleanOptionalAction)
-    parser.add_argument('-f', '--force-power-off', help='force power off the system', action=BooleanOptionalAction)
+    parser.add_argument(
+        '-c',
+        '--config-file',
+        help='configuration file',
+        default=f'/etc/effective-range/{APPLICATION_NAME}/{APPLICATION_NAME}.conf',
+    )
+
+    parser.add_argument('-f', '--log-file', help='log file path')
+    parser.add_argument('-l', '--log-level', help='logging level')
+
+    parser.add_argument('--api-server-port', help='web server port to listen on', type=int)
+
+    parser.add_argument('--power-off-forced', help='force power off the system', action=BooleanOptionalAction)
+
+    parser.add_argument('--systemd-retry-limit', help='systemd operation retry limit', type=int)
+    parser.add_argument('--systemd-retry-delay', help='systemd operation retry delay', type=float)
+
+    parser.add_argument('--firmware-package-dir', help='MrHat firmware directory path')
+    parser.add_argument('--firmware-package-file', help='MrHat firmware file path or URL')
+    parser.add_argument('--firmware-auto-upgrade', help='automatically upgrade firmware', action=BooleanOptionalAction)
+
+    parser.add_argument('--interrupt-pin', help='interrupt GPIO pin number of the device', type=int)
+    parser.add_argument('--interrupt-pull', help='interrupt GPIO pin PULL_UP or PULL_DOWN')
+    parser.add_argument('--interrupt-edge', help='interrupt GPIO pin FALLING_EDGE or RISING_EDGE')
+
+    parser.add_argument('--i2c-bus-id', help='I2C bus ID of the device', type=int)
+    parser.add_argument('--i2c-address', help='I2C address of the device', type=int)
+    parser.add_argument('--i2c-retry-limit', help='I2C operation retry limit', type=int)
+    parser.add_argument('--i2c-retry-delay', help='I2C operation retry delay', type=float)
 
     return {k: v for k, v in vars(parser.parse_args()).items() if v is not None}
 

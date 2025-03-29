@@ -1,4 +1,3 @@
-from .appConfigLoader import *
 from .platformAccess import *
 from .piGpio import *
 from .i2cControl import *
