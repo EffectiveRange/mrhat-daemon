@@ -58,7 +58,7 @@ def main() -> None:
         systemd_retry_limit = int(config['systemd_retry_limit'])
         systemd_retry_delay = float(config['systemd_retry_delay'])
         firmware_package_dir = config['firmware_package_dir']
-        firmware_package_file = config['firmware_package_file']
+        firmware_package_file = config.get('firmware_package_file')
         firmware_auto_upgrade = bool(config['firmware_auto_upgrade'])
         interrupt_pin = int(config['interrupt_pin'])
         interrupt_pull = GpioPullType[config['interrupt_pull']]
